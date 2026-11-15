@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.env*
+!.env.example
+playwright-report/
+test-results/
+# Raw source captures are intermediate inputs; cleaned content is versioned.
+content/source-pages.json
+content/source-gallery.json
