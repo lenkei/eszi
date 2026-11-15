@@ -10,16 +10,17 @@ export function Header() {
   const [panel, setPanel] = useState<string | null>(null);
   const root = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
+  const desktopTrigger = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     setOpen(false);
     setPanel(null);
   }, [pathname]);
   useEffect(() => {
     function key(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && (open || panel)) {
         setOpen(false);
         setPanel(null);
-        toggle.current?.focus();
+        (open ? toggle.current : desktopTrigger.current)?.focus();
       }
     }
     function outside(e: PointerEvent) {
@@ -33,7 +34,7 @@ export function Header() {
       document.removeEventListener("keydown", key);
       document.removeEventListener("pointerdown", outside);
     };
-  }, []);
+  }, [open, panel]);
   const desktop = [groups[0], groups[1], groups[2]];
   return (
     <header className="site-header" ref={root}>
@@ -84,7 +85,10 @@ export function Header() {
                 aria-label={`${g.label} almenü`}
                 aria-expanded={panel === g.label}
                 aria-controls="desktop-submenu"
-                onClick={() => setPanel(panel === g.label ? null : g.label)}
+                onClick={(e) => {
+                  desktopTrigger.current = e.currentTarget;
+                  setPanel(panel === g.label ? null : g.label);
+                }}
               >
                 <Icon name="chevron" />
               </button>
@@ -92,9 +96,10 @@ export function Header() {
           ))}
           <button
             className={`nav-more ${["Vizsgák", "Dokumentumtár", "Szülő-diák", "Fenntartó"].includes(panel || "") ? "active" : ""}`}
-            onClick={() =>
-              setPanel(panel === "Tudnivalók" ? null : "Tudnivalók")
-            }
+            onClick={(e) => {
+              desktopTrigger.current = e.currentTarget;
+              setPanel(panel === "Tudnivalók" ? null : "Tudnivalók");
+            }}
             aria-expanded={panel === "Tudnivalók"}
             aria-controls="desktop-submenu"
           >
@@ -138,7 +143,11 @@ export function Header() {
               : groups.filter((g) => g.label === panel)
             ).map((g) => (
               <div key={g.href}>
-                <Link className="mega-title" href={g.href}>
+                <Link
+                  className="mega-title"
+                  href={g.href}
+                  onClick={() => setPanel(null)}
+                >
                   {g.label} <span aria-hidden="true">↗</span>
                 </Link>
                 {g.links.map((l) => (

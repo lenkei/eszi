@@ -75,8 +75,12 @@ export function calculateArea(rules: Rule[], grades: Grades) {
     for (const subject of rule.subjects) {
       const pair = grades[subject];
       if (
-        !pair ||
-        pair.some((g) => g === null || !Number.isInteger(g) || g < 2 || g > 5)
+        !Array.isArray(pair) ||
+        pair.length !== 2 ||
+        [pair[0], pair[1]].some(
+          (g) =>
+            typeof g !== "number" || !Number.isInteger(g) || g < 2 || g > 5,
+        )
       ) {
         missing.push(subject);
         valid = false;

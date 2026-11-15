@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { decode, prepareDocuments, searchDocuments } from "@/lib/search";
 import Link from "next/link";
 import index from "@/content/search-index.json";
 import { courses } from "@/lib/courses";
@@ -9,20 +10,22 @@ export const metadata: Metadata = {
   title: "Keresés a honlapon",
   robots: { index: false, follow: true },
 };
-const normalize = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("hu");
-function decode(s: string) {
-  return s
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&gt;/g, ">")
-    .replace(/&lt;/g, "<")
-    .replace(/&#\d+;/g, " ")
-    .replace(/\s+/g, " ");
-}
+const documents = prepareDocuments([
+  ...index,
+  ...Object.entries(customTitles)
+    .filter(([slug]) => !index.some((p) => p.slug === slug))
+    .map(([slug, title]) => ({
+      slug,
+      title,
+      text: customDescriptions[slug] || "",
+    })),
+  ...courses.map((c) => ({
+    slug: `kepzesek/${c.slug}`,
+    title: c.name,
+    text: c.description + " " + c.jobs.join(" "),
+  })),
+]);
+
 export default async function SearchPage({
   searchParams,
 }: {
@@ -30,39 +33,8 @@ export default async function SearchPage({
 }) {
   const params = await searchParams;
   const q = (typeof params.q === "string" ? params.q : "").slice(0, 200).trim();
-  const documents = [
-    ...index,
-    ...Object.entries(customTitles)
-      .filter(([slug]) => !index.some((p) => p.slug === slug))
-      .map(([slug, title]) => ({
-        slug,
-        title,
-        text: customDescriptions[slug] || "",
-      })),
-    ...courses.map((c) => ({
-      slug: `kepzesek/${c.slug}`,
-      title: c.name,
-      text: c.description + " " + c.jobs.join(" "),
-    })),
-  ];
-  const words = normalize(q).split(/\s+/).filter(Boolean);
-  const results = q
-    ? documents
-        .map((p) => ({
-          ...p,
-          rank: words.reduce(
-            (n, w) => n + (normalize(p.title).includes(w) ? 10 : 0),
-            0,
-          ),
-        }))
-        .filter((p) =>
-          words.every((w) =>
-            normalize(p.title + " " + decode(p.text)).includes(w),
-          ),
-        )
-        .sort((a, b) => b.rank - a.rank || a.title.localeCompare(b.title, "hu"))
-        .slice(0, 60)
-    : [];
+  const matches = searchDocuments(documents, q);
+  const results = matches.slice(0, 60);
   return (
     <PageShell
       title="Mit keresel?"
@@ -92,9 +64,15 @@ export default async function SearchPage({
         <>
           <p className="search-count" role="status">
             {results.length
-              ? `${results.length}${results.length === 60 ? "+" : ""} találat erre: „${q}”`
+              ? `${matches.length} találat erre: „${q}”`
               : `Nincs találat erre: „${q}”. Próbálj rövidebb vagy másik kifejezést.`}
           </p>
+          {matches.length > 60 && (
+            <p>
+              Az első 60 találat látható. Pontosítsd a keresést további
+              kifejezésekkel.
+            </p>
+          )}
           <div className="search-results">
             {results.map((p) => (
               <Link className="link-card" href={`/${p.slug}`} key={p.slug}>

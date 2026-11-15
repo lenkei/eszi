@@ -100,3 +100,68 @@ test("unknown pages return a real 404", async ({ page }) => {
     "másik irányt",
   );
 });
+
+test("desktop Escape restores focus to its opener and does not hijack unrelated focus", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const opener = page.getByRole("button", { name: "Tudnivalók" });
+  await opener.click();
+  await page.locator("#desktop-submenu a").first().focus();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#desktop-submenu")).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  const search = page.getByRole("link", { name: "Keresés a honlapon" });
+  await search.focus();
+  await page.keyboard.press("Escape");
+  await expect(search).toBeFocused();
+});
+
+test("production security policy permits hydration and rejects inline event handlers", async ({
+  page,
+}) => {
+  const violations: string[] = [];
+  page.on("console", (message) => {
+    if (
+      /violates.*Content Security Policy|Refused to (execute|load|apply)/i.test(
+        message.text(),
+      )
+    )
+      violations.push(message.text());
+  });
+  const response = await page.goto("/felvetelikalkulator");
+  expect(response?.headers()["content-security-policy"]).toContain(
+    "script-src-attr 'none'",
+  );
+  expect(response?.headers()["content-security-policy"]).not.toContain(
+    "unsafe-eval",
+  );
+  expect(response?.headers()["x-frame-options"]).toBe("DENY");
+  await page.locator("select").first().selectOption("5");
+  await expect(page.locator("select").first()).toHaveValue("5");
+  expect(violations).toEqual([]);
+  await page.evaluate(() => {
+    const button = document.createElement("button");
+    button.setAttribute(
+      "onclick",
+      "document.documentElement.dataset.injected='yes'",
+    );
+    document.body.append(button);
+    button.click();
+    button.remove();
+  });
+  expect(await page.locator("html").getAttribute("data-injected")).toBeNull();
+});
+
+test("search treats attack strings as text and repeated query parameters do not crash", async ({
+  page,
+}) => {
+  const payload =
+    '<img src=x onerror="document.documentElement.dataset.injected=1">';
+  await page.goto(`/kereses?q=${encodeURIComponent(payload)}`);
+  await expect(page.getByRole("searchbox")).toHaveValue(payload);
+  await expect(page.locator(".search-count img")).toHaveCount(0);
+  expect(await page.locator("html").getAttribute("data-injected")).toBeNull();
+  expect((await page.goto("/kereses?q=one&q=two"))?.status()).toBe(200);
+});

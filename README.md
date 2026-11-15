@@ -4,7 +4,7 @@ Az eszi.hu új, reszponzív Next.js-oldala az elfogadott főoldalterv alapján. 
 
 ## Futtatás
 
-Node.js 22.18 vagy újabb szükséges (a TypeScript-alapú tesztekhez is).
+Node.js 24.15 vagy újabb 24 LTS szükséges (a TypeScript-alapú tesztekhez is).
 
 ```bash
 npm ci
@@ -69,3 +69,7 @@ A főoldal és a tartalmi aloldalak előre renderelt HTML-ként készülnek, csa
 A GitHub Actions minden main-push és pull request esetén buildet, egységteszteket, útvonal-ellenőrzést és Playwright-böngészőteszteket futtat. A böngészőtesztek 320, 390, 768 és 1440 px szélességen vizsgálják a főoldalt, illetve a menü és a kalkulátor működését; a képernyőképek a `browser-test-results` artifactban érhetők el. Helyben: `npx playwright install chromium`, majd `npm run test:e2e`.
 
 A tesztek a kalkulátor súlyozását, a hiányos jegyek kezelését, a belső hivatkozásokat, a főmenük tartalmát és az importált HTML tisztítását ellenőrzik. A sebességhez nem állítunk be nem mért Lighthouse-pontszámot.
+
+## Biztonsági ellenőrzés
+
+A kódellenőrzés eredménye és a védelem korlátai: [docs/security-review.md](docs/security-review.md). A CI függőségvizsgálatot és XSS-regressziós teszteket is futtat.

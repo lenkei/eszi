@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { sanitizeContentHtml } from "@/lib/sanitize-html";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { pages, pageNavigation, descriptions } from "@/lib/content";
@@ -47,7 +48,8 @@ export default async function ContentPage({ params }: Props) {
   const slug = parts.join("/");
   const info = getInfo(slug);
   if (!info.title) notFound();
-  const isCustom = slug in customTitles || slug.startsWith("kepzesek/");
+  const isCustom =
+    Object.hasOwn(customTitles, slug) || slug.startsWith("kepzesek/");
   const page = pages[slug];
   const links = slug.startsWith("kepzesek/")
     ? [
@@ -88,7 +90,7 @@ export default async function ContentPage({ params }: Props) {
           )}
           <article
             className="prose"
-            dangerouslySetInnerHTML={{ __html: page.html }}
+            dangerouslySetInnerHTML={{ __html: sanitizeContentHtml(page.html) }}
           />
           <p className="source-note">
             Az információk az intézmény közzétett tájékoztatóin alapulnak.

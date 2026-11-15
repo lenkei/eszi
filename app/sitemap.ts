@@ -1,9 +1,10 @@
+import { getSiteUrl } from "@/lib/site-url";
 import type { MetadataRoute } from "next";
 import { pages } from "@/lib/content";
 import { courses } from "@/lib/courses";
 import { customTitles } from "@/components/CustomPages";
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://www.eszi.hu";
+  const base = getSiteUrl();
   return [
     { url: base, changeFrequency: "weekly", priority: 1 },
     ...[
